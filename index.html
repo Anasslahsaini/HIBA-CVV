@@ -1,822 +1,687 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم المتداول المحترف | Professional Trading Journal</title>
+    <!-- NOUVEAU TITRE -->
+    <title>Hiba Aafi - Portfolio & Recherche d'Alternance (Génie Électrique)</title>
+    <!-- NOUVELLE META DESCRIPTION -->
+    <meta name="description" content="Découvrez le profil de Hiba Aafi, future Ingénieure CNAM (Génie Électrique). Recherche active d'une alternance de 3 ans. Compétences techniques, gestion de projet et rigueur.">
+    <!-- Chargement de Tailwind CSS pour un design moderne et responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Configuration de la police Inter et des couleurs personnalisées -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-dark': '#1a1a1a', // Noir Charbon
+                        'soft-gray': '#f3f4f6',     // Gris très clair / Fond de section en mode clair
+                        'energy-green': '#8860a8',   // Vert professionnel (Accent)
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
+        /* Définition du style d'animation de base */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        /* Classe activée par JavaScript */
+        .fade-in-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Style pour les tuiles de compétences */
+        .skill-tile {
+            transition: all 0.3s ease;
+        }
+        .skill-tile:hover {
+            transform: translateY(-4px) scale(1.02);
+            /* Utilisation du Vert Énergie pour l'ombre au survol (RGB de #059669) */
+            box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.2), 0 4px 6px -2px rgba(5, 150, 105, 0.05);
+        }
+        /* Assure un défilement doux */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* CORRECTION DU DÉBORDEMENT HORIZONTAL */
         body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #111827; /* Dark Gray */
-            color: #d1d5db; /* Light Gray Text */
+            overflow-x: hidden;
         }
-        .card {
-            background-color: #1f2937; /* Lighter Dark Gray */
-            border: 1px solid #374151;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        /* --- STYLES SPÉCIFIQUES À L'ANIMATION D'INTRODUCTION --- */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 1s ease-out;
+            font-weight: 700;
         }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        /* Style du curseur de l'effet machine à écrire */
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background-color: #059669;
+            margin-left: 5px;
+            animation: blink 0.7s infinite;
         }
-        .btn-primary { 
-            background-color: #3b82f6; /* Blue */
-            color: #FFFFFF; 
-            transition: background-color 0.3s, transform 0.2s; 
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
-        .btn-primary:hover { 
-            background-color: #2563eb; 
-            transform: scale(1.02); 
-        }
-        .chart-container { position: relative; width: 100%; height: 350px; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        
-        .blurry-overlay {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-        
-        #trade-log-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        #trade-log-container::-webkit-scrollbar-track {
-            background: #374151;
-            border-radius: 10px;
-        }
-        #trade-log-container::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 10px;
-        }
-        #trade-log-container::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-        .trade-details {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out;
-        }
-        .trade-item.expanded .trade-details {
-             max-height: 500px;
+        /* Cache le curseur lorsque le texte est complet */
+        #intro-text.finished + .typing-cursor {
+             animation: none;
+             opacity: 0;
         }
     </style>
 </head>
-<body class="text-gray-200">
-
-    <!-- Firestore Dependencies -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, GoogleAuthProvider, OAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, onSnapshot, collection, query, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-
-        window.firebaseApp = null;
-        window.db = null;
-        window.auth = null;
-        window.userId = null;
-        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyAXdhPKpGZAE7SBL0SsWqDyX0zvr-e6y6U",
-            authDomain: "arkane-journal-traiding.firebaseapp.com",
-            projectId: "arkane-journal-traiding",
-            storageBucket: "arkane-journal-traiding.appspot.com",
-            messagingSenderId: "678965181099",
-            appId: "1:678965181099:web:d9747db9385a52e207d5ee",
-            measurementId: "G-NFX3CFRS4N"
-        };
-
-        window.collection = collection;
-        window.query = query;
-        window.onSnapshot = onSnapshot;
-        window.addDoc = addDoc;
-        window.deleteDoc = deleteDoc;
-        window.doc = doc;
-        window.serverTimestamp = serverTimestamp;
-        window.GoogleAuthProvider = GoogleAuthProvider;
-        window.OAuthProvider = OAuthProvider;
-        window.signInWithPopup = signInWithPopup;
-        window.signInAnonymously = signInAnonymously; // Expose signInAnonymously globally
-
-        setLogLevel('error');
-        try {
-            window.firebaseApp = initializeApp(firebaseConfig);
-            window.db = getFirestore(window.firebaseApp);
-            window.auth = getAuth(window.firebaseApp);
-
-            onAuthStateChanged(window.auth, (user) => {
-                if (user) {
-                    window.userId = user.uid;
-                    document.dispatchEvent(new Event('authReady'));
-                } else {
-                     document.dispatchEvent(new Event('authNeeded'));
-                }
-            });
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-            document.dispatchEvent(new Event('authNeeded'));
-        }
-    </script>
-
-    <!-- Auth & Loading Overlay -->
-    <div id="auth-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 blurry-overlay z-50 flex justify-center items-center p-4">
-        <div id="auth-modal" class="bg-gray-800 p-8 sm:p-10 rounded-2xl shadow-2xl flex-col items-center border border-gray-700 w-11/12 sm:w-auto max-w-md hidden">
-             <div class="mb-4 text-center">
-                 <span class="text-5xl">📈</span>
-            </div>
-            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-white text-center">مرحباً بك في سجل تداول اركان</h2>
-            <p class="text-gray-400 mb-8 text-center">سجل صفقاتك، حلل أدائك، وتطور كمتداول.</p>
-            
-            <div class="space-y-4 w-full">
-                <button id="google-signin-btn" class="w-full bg-white hover:bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg border border-gray-300 transition-colors flex items-center justify-center gap-3">
-                    <!-- Clean Google Logo SVG -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.3 1.62-3.85 1.62-4.66 0-8.49-3.83-8.49-8.49s3.83-8.49 8.49-8.49c2.65 0 4.29 1.04 5.3 2.01l2.76-2.76c-1.75-1.62-4.02-2.61-6.75-2.61-5.52 0-10 4.48-10 10s4.48 10 10 10c3.13 0 5.66-1.04 7.55-2.94 2-1.93 2.62-4.59 2.62-6.93 0-.6-.05-1.19-.16-1.74z"/></svg>
-                    <span>المتابعة باستخدام Google</span>
-                </button>
-                 <button id="apple-signin-btn" class="w-full bg-black hover:bg-gray-900 text-white font-bold py-3 px-6 rounded-lg border border-gray-600 transition-colors flex items-center justify-center gap-3">
-                    <!-- Clean Apple Logo SVG -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.028-3.91 1.183-4.961 3.014-2.117 3.675-.537 9.053 1.5 12.23.994 1.548 2.14 3.096 3.63 3.124 1.454.028 1.95-.966 3.63-1.012 1.68-.046 2.129.938 3.602 1.012 1.53.056 2.623-1.51 3.616-3.124 1.257-1.92 1.63-3.363 1.646-3.487-.031-.015-3.124-1.8-3.155-5.42.021-3.232 2.45-4.514 2.62-4.664-1.232-1.826-3.21-2.08-3.955-2.11-1.928-.028-3.617 1.092-4.585 1.092zM10.83 3.587c.973-.014 2.222.56 3.038 1.413-.74 1.02-1.83 1.413-2.923 1.413-.933 0-2.15- .504-2.938-1.385.76-.84 1.66-1.44 2.823-1.44z"/></svg>
-                    <span>المتابعة باستخدام Apple</span>
-                </button>
-            </div>
-            <div class="mt-8 text-center">
-                <button id="guest-signin-btn" class="text-sm text-gray-400 hover:text-white transition-colors">أو المتابعة كضيف</button>
-            </div>
-        </div>
-         <div id="loading-container" class="text-center bg-gray-800 p-10 rounded-2xl shadow-xl flex-col items-center border border-gray-700 hidden">
-            <div id="loading-spinner" class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <h2 id="loading-title" class="text-2xl font-bold mb-4 text-white">جاري المزامنة...</h2>
+<body class="bg-white text-charcoal-dark font-sans transition-colors duration-500">
+    <!-- OVERLAY D'INTRODUCTION (Mode Machine à Écrire) -->
+    <div id="intro-overlay">
+        <div class="px-4 flex items-center justify-center max-w-full mx-auto">
+            <!-- TEXTE MIS À JOUR (Prête) -->
+            <h1 id="intro-text" class="inline text-3xl sm:text-4xl font-extrabold text-charcoal-dark">
+            </h1>
+            <span class="typing-cursor"></span>
         </div>
     </div>
+    <!-- FIN OVERLAY -->
 
-    <div id="app-container" class="opacity-0 transition-opacity duration-500 flex min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-gray-900 p-6 space-y-8 hidden lg:block border-l border-gray-700">
-            <div class="flex items-center gap-3">
-                 <span class="text-3xl">📈</span>
-                 <h1 class="text-xl font-bold text-white">سجل تداول اركان</h1>
-            </div>
-            <nav class="space-y-2">
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white font-bold">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    <span>لوحة التحكم</span>
-                </a>
-            </nav>
-            <div class="absolute bottom-6">
-                <div id="user-info" class="flex items-center gap-3 bg-gray-800 p-2 pr-4 rounded-lg border border-gray-700">
-                    <span class="font-mono text-xs text-gray-400" id="user-id-display"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <!-- Navbar Fixe / TOC (Table of Contents) -->
+    <nav class="sticky top-0 z-50 bg-white border-b border-soft-gray shadow-lg transition-colors duration-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0">
+                    <!-- MIS À JOUR -->
+                    <a href="#hero" class="text-xl font-bold text-energy-green tracking-wider">H. AAFI</a>
                 </div>
-            </div>
-        </aside>
+                <div class="flex items-center space-x-4">
+                    <!-- Navigation (TOC) - Desktop -->
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="#summary" class="text-charcoal-dark hover:text-energy-green px-3 py-2 rounded-md text-sm font-medium transition duration-200">Profil</a>
+                            <a href="#skills" class="text-charcoal-dark hover:text-energy-green px-3 py-2 rounded-md text-sm font-medium transition duration-200">Compétences</a>
+                            <a href="#experience" class="text-charcoal-dark hover:text-energy-green px-3 py-2 rounded-md text-sm font-medium transition duration-200">Expérience</a>
+                            <!-- LIEN VERS LES PROJETS AJOUTÉ -->
+                            <a href="#projects" class="text-charcoal-dark hover:text-energy-green px-3 py-2 rounded-md text-sm font-medium transition duration-200">Projets</a>
+                            <a href="#education" class="text-charcoal-dark hover:text-energy-green px-3 py-2 rounded-md text-sm font-medium transition duration-200">Formation</a>
+                            <a href="#contact" class="px-3 py-2 rounded-md text-sm font-medium text-white bg-energy-green hover:bg-emerald-700 transition duration-300 shadow-md">
+                                Contact
+                            </a>
+                        </div>
+                    </div>
 
-        <!-- Main Content -->
-        <main class="flex-1 p-4 sm:p-6 lg:p-8">
-            <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
-                <div>
-                     <h1 class="text-3xl font-bold text-white">لوحة التحكم</h1>
-                     <p class="text-gray-400">تحليل شامل لأداء التداول الخاص بك.</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button id="add-trade-btn" class="btn-primary font-bold py-2 px-5 rounded-lg flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
-                        <span>إضافة صفقة</span>
+                    <!-- NOUVEAU: Bouton Menu Mobile (Hamburger) -->
+                    <button id="menu-button" class="md:hidden p-2 rounded-md text-charcoal-dark hover:text-energy-green hover:bg-soft-gray focus:outline-none focus:ring-2 focus:ring-inset focus:ring-energy-green transition duration-150" aria-label="Ouvrir le menu de navigation">
+                        <!-- Icône Hamburger -->
+                        <svg id="menu-icon-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        <!-- Icône Croix (Close) -->
+                        <svg id="menu-icon-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
-                    <button id="settings-btn" class="p-3 bg-gray-800 rounded-lg border border-gray-700 hover:bg-gray-700 transition-colors" title="إعدادات وتصدير البيانات">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-            </header>
 
-            <!-- KPIs Section -->
-            <section class="mb-8">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6" id="kpi-cards">
-                    <!-- KPI Cards will be injected here -->
-                </div>
-            </section>
-
-            <!-- Charts and Logs -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Left: Equity Curve & Setups -->
-                 <div class="lg:col-span-2 space-y-8">
-                    <div class="card p-6 rounded-xl">
-                        <h2 class="text-xl font-bold text-white mb-4">منحنى نمو رأس المال</h2>
-                        <div class="chart-container">
-                            <canvas id="equityChart"></canvas>
-                        </div>
-                    </div>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <div class="card p-6 rounded-xl">
-                            <h2 class="text-xl font-bold text-white mb-4">تحليل أداء الاستراتيجيات</h2>
-                            <div class="chart-container h-64">
-                                <canvas id="setupsChart"></canvas>
-                            </div>
-                        </div>
-                        <!-- Placeholder for another chart -->
-                         <div class="card p-6 rounded-xl">
-                            <h2 class="text-xl font-bold text-white mb-4">مقاييس أداء إضافية</h2>
-                            <div class="space-y-4 pt-2">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-400">أطول سلسلة رابحة</span>
-                                    <span id="longestWinStreak" class="font-bold text-green-400 text-2xl">0</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-400">أطول سلسلة خاسرة</span>
-                                    <span id="longestLossStreak" class="font-bold text-red-400 text-2xl">0</span>
-                                </div>
-                                 <div class="flex justify-between items-center">
-                                    <span class="text-gray-400">مجموع الصفقات الرابحة</span>
-                                    <span id="totalWins" class="font-bold text-gray-300 text-2xl">0</span>
-                                </div>
-                                 <div class="flex justify-between items-center">
-                                    <span class="text-gray-400">مجموع الصفقات الخاسرة</span>
-                                    <span id="totalLosses" class="font-bold text-gray-300 text-2xl">0</span>
-                                </div>
-                            </div>
-                        </div>
-                     </div>
-                 </div>
-
-                <!-- Right: Trade Log -->
-                <div class="lg:col-span-1 card p-6 rounded-xl">
-                    <h2 class="text-xl font-bold text-white mb-4">أحدث الصفقات</h2>
-                    <div id="trade-log-container" class="space-y-3 h-[42rem] overflow-y-auto pr-2">
-                        <!-- Trades will be injected here -->
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Modals (Add Trade, Settings, Confirmation) -->
-    
-    <!-- Add/Edit Trade Modal -->
-    <div id="trade-modal" class="fixed inset-0 bg-gray-900 bg-opacity-70 blurry-overlay flex justify-center items-center z-50 hidden animate-fade-in">
-        <div class="card rounded-2xl p-8 w-11/_12 md:w-2/3 lg:w-1/3 shadow-2xl">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-white">إضافة صفقة جديدة</h2>
-                <button id="close-trade-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
-            </div>
-            <form id="trade-form" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm text-gray-400 font-medium block mb-1">الأصل المالي</label>
-                        <input type="text" id="asset" required class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="BTC/USDT">
-                    </div>
-                     <div>
-                        <label class="text-sm text-gray-400 font-medium block mb-1">استراتيجية التداول</label>
-                        <input type="text" id="setup" required class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Breakout, Reversal...">
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="text-sm text-gray-400 font-medium block mb-1">نتيجة الصفقة</label>
-                        <select id="status" required class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="Win">ربح</option>
-                            <option value="Loss">خسارة</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-400 font-medium block mb-1">اتجاه الصفقة</label>
-                        <select id="direction" required class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="Long">شراء</option>
-                            <option value="Short">بيع</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-400 font-medium block mb-1">قيمة الربح/الخسارة ($)</label>
-                        <input type="number" id="profit" required step="0.01" class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="150.50">
-                    </div>
-                </div>
-                 <div>
-                    <label class="text-sm text-gray-400 font-medium block mb-1">إرفاق صورة التحليل (اختياري - حد أقصى 500KB)</label>
-                    <input type="file" id="tradeImage" accept="image/*" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-gray-200 hover:file:bg-gray-500"/>
-                </div>
-                <div>
-                    <label class="text-sm text-gray-400 font-medium block mb-1">ملاحظات على الصفقة</label>
-                    <textarea id="notes" rows="3" class="w-full p-2.5 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="دوّن أسباب الدخول، الخروج، والأخطاء التي ارتكبتها."></textarea>
-                </div>
-                <button type="submit" id="submit-btn" class="btn-primary w-full font-bold py-3 px-4 rounded-lg flex justify-center items-center h-12 text-base">
-                    حفظ
-                </button>
-                <p id="form-message" class="text-center text-sm hidden"></p>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-70 blurry-overlay flex justify-center items-center z-50 hidden">
-         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 md:p-8 w-11/12 md:w-2/3 lg:w-1/2 shadow-2xl animate-fade-in">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-white">الإعدادات وتصدير البيانات</h2>
-                <button id="close-settings-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
-            </div>
-            <div class="space-y-6">
-                <div>
-                    <h3 class="text-lg font-semibold text-blue-400 mb-3">تصدير بيانات التداول</h3>
-                    <div class="bg-gray-700 p-4 rounded-lg space-y-3">
-                        <p class="text-sm text-gray-300">قم بتصدير سجل التداول بالكامل إلى ملف CSV لإجراء تحليل متقدم باستخدام برامج مثل Excel أو Google Sheets.</p>
-                        <button id="export-btn" class="btn-primary font-bold py-2 px-6 rounded-lg w-full">
-                            تصدير البيانات إلى CSV
-                        </button>
-                    </div>
-                </div>
-                 <div>
-                    <h3 class="text-lg font-semibold text-red-400 mb-3">إجراءات حساسة</h3>
-                    <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg space-y-3 border border-red-500">
-                        <p class="text-sm text-red-300 font-bold">تنبيه: هذا الإجراء سيقوم بحذف جميع بيانات التداول الخاصة بك بشكل دائم ولا يمكن التراجع عنه.</p>
-                        <button id="clear-data-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg w-full transition-all">
-                            حذف جميع البيانات
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
+        <!-- NOUVEAU: Menu Mobile (Masqué par défaut) -->
+        <div id="mobile-menu" class="hidden md:hidden absolute w-full bg-white shadow-xl border-t border-soft-gray pb-4 transition-all duration-300 ease-in-out">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#summary" class="block px-3 py-2 rounded-md text-base font-medium text-charcoal-dark hover:bg-soft-gray hover:text-energy-green transition duration-200">Profil</a>
+                <a href="#skills" class="block px-3 py-2 rounded-md text-base font-medium text-charcoal-dark hover:bg-soft-gray hover:text-energy-green transition duration-200">Compétences</a>
+                <a href="#experience" class="block px-3 py-2 rounded-md text-base font-medium text-charcoal-dark hover:bg-soft-gray hover:text-energy-green transition duration-200">Expérience</a>
+                <a href="#projects" class="block px-3 py-2 rounded-md text-base font-medium text-charcoal-dark hover:bg-soft-gray hover:text-energy-green transition duration-200">Projets</a>
+                <a href="#education" class="block px-3 py-2 rounded-md text-base font-medium text-charcoal-dark hover:bg-soft-gray hover:text-energy-green transition duration-200">Formation</a>
+                <a href="#contact" class="mt-4 block px-3 py-2 rounded-md text-base font-medium text-white bg-energy-green hover:bg-emerald-700 text-center">Contactez-moi</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Le padding-bottom est augmenté (pb-20) pour compenser le CTA fixe sur mobile -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-20 md:pb-12">
+
+        <!-- 1. Hero section + name + mission statement + CTA -->
+        <section id="hero" class="min-h-[85vh] flex items-center pt-16 -mt-16">
+            <div class="flex flex-col md:flex-row gap-12 items-center">
+                
+                <!-- Colonne de droite (Photo de profil) -->
+                <!-- MODIFIÉ: 'order-1' (mobile) et 'md:order-2' (desktop) pour changer la position -->
+                <div class="order-1 md:order-2 md:w-1/3 flex justify-center mt-10 md:mt-0 fade-in-up delay-100">
+                    <!-- NOUVEAU: Photo de profil remplacée par un placeholder SVG avec initiales -->
+                    <div class="w-56 h-56 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-2xl border-4 border-energy-green/50 relative flex items-center justify-center bg-soft-gray">
+                        <svg class="w-32 h-32 text-energy-green" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="12" font-family="Inter, sans-serif" font-weight="600">HA</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Colonne de gauche (texte) -->
+                <!-- MODIFIÉ: 'order-2' (mobile) et 'md:order-1' (desktop) pour changer la position -->
+                <div class="order-2 md:order-1 md:w-2/3 space-y-4 sm:space-y-6 fade-in-up">
+                    <p class="text-lg sm:text-xl font-medium text-gray-500">Bonjour, je suis</p>
+                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-charcoal-dark">
+                        <!-- MIS À JOUR -->
+                        Hiba <span class="text-energy-green">Aafi</span>
+                    </h1>
+                    <!-- Mission Statement (MIS À JOUR) -->
+                    <h2 class="text-xl sm:text-2xl font-semibold text-gray-700 border-l-4 border-energy-green pl-4">
+                        Future Ingénieure en Génie Électrique (CNAM) | <span class="block sm:inline text-charcoal-dark">Recherche d'Alternance (3 ans)</span>
+                    </h2>
+                    <!-- CONTENU MIS À JOUR -->
+                    <p class="mt-8 text-lg max-w-2xl">
+                        <strong class="font-semibold">Mon objectif :</strong> Mettre en pratique mes compétences techniques et approfondir mon expertise dans le domaine du génie électrique au sein de votre entreprise.
+                    </p>
+                    <!-- CTA + Download CV (Bouton CV supprimé, LinkedIn mis en avant) -->
+                    <div class="pt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                        <a href="#contact" class="px-6 py-3 text-lg font-medium rounded-full text-white bg-energy-green hover:bg-emerald-700 transition duration-300 shadow-xl shadow-energy-green/40 text-center">
+                            Me contacter 
+                        </a>
+                        <!-- LIEN MIS À JOUR -->
+                        <a href="https://www.linkedin.com/in/hiba-aafi/" target="_blank" aria-label="Profil LinkedIn de Hiba Aafi" class="flex items-center justify-center p-3 px-6 rounded-full text-charcoal-dark border border-gray-400 hover:bg-soft-gray transition duration-300">
+                             <!-- Icône LinkedIn (à jour) -->
+                            <svg class="w-6 h-6 text-energy-green mr-2" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.551-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.742 7 2.742v6.493z"></path></svg>
+                            <span>Voir mon LinkedIn</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 2. Short professional summary (2–3 lines) -->
+        <!-- Background: bg-soft-gray (Alternance 1) -->
+        <section id="summary" class="py-16 sm:py-24 bg-soft-gray rounded-2xl transition-colors duration-500 my-16">
+            <div class="max-w-4xl mx-auto p-6 sm:p-8 text-center fade-in-up">
+                <!-- CONTENU MIS À JOUR -->
+                <h2 class="text-3xl font-bold mb-4 text-charcoal-dark">
+                    Mon Profil en Bref
+                </h2>
+                <!-- 2-3 lignes, ATS-friendly (CONTENU MIS À JOUR) -->
+                <p class="text-lg sm:text-xl leading-relaxed text-gray-700">
+                    Actuellement admise en formation cycle ingénieur en <strong>génie électrique</strong> au <strong>CNAM</strong>, je suis à la recherche d'une alternance de 3 ans. Issue d'une CPGE TSI, je possède une solide <strong>rigueur scientifique</strong> et une <strong>grande capacité d'adaptation</strong>. Je suis déterminée à appliquer mes compétences techniques et à m'investir pleinement dans des projets concrets.
+                </p>
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 3. Skills (grouped by technical & soft) -->
+        <!-- Background: bg-white (Alternance 2) -->
+        <section id="skills" class="py-16 sm:py-24 bg-white rounded-2xl transition-colors duration-500 my-16">
+            <!-- CONTENU MIS À JOUR -->
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-charcoal-dark fade-in-up">
+                Mes Compétences Clés
+            </h2>
+            <div class="max-w-6xl mx-auto space-y-12">
+
+                <!-- Groupe 1: Compétences Techniques (Hard Skills) -->
+                <div class="fade-in-up delay-100">
+                    <!-- CONTENU MIS À JOUR -->
+                    <h3 class="text-2xl sm:text-3xl font-bold text-energy-green mb-6 border-b pb-2">Compétences Techniques & Informatiques</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+                        <!-- Compétences Mises à Jour -->
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">🖥️</span>
+                            <p class="font-semibold text-sm sm:text-lg">Langages</p>
+                            <p class="text-sm text-gray-600">Python, C, Java, HTML, Assembleur</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">⚡</span>
+                            <p class="font-semibold text-sm sm:text-lg">Électricité & Automatisme</p>
+                            <p class="text-sm text-gray-600">SIMATIC, Dialux Evo, AutoCAD</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">💡</span>
+                            <p class="font-semibold text-sm sm:text-lg">Électronique</p>
+                            <p class="text-sm text-gray-600">ARDUINO, ISIS, DEVC++</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">📐</span>
+                            <p class="font-semibold text-sm sm:text-lg">Modélisation & CAD</p>
+                            <p class="text-sm text-gray-600">Solidworks, MATLAB, Scilab, StarUML</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">📊</span>
+                            <p class="font-semibold text-sm sm:text-lg">Bureautique</p>
+                            <p class="text-sm text-gray-600">Excel, Word, PowerPoint, Outlook</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Groupe 2: Compétences Douces (Soft Skills) -->
+                <div class="fade-in-up delay-300">
+                    <!-- CONTENU MIS À JOUR -->
+                    <h3 class="text-2xl sm:text-3xl font-bold text-energy-green mb-6 border-b pb-2">Compétences Comportementales (Soft Skills)</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+                        <!-- Compétences Mises à Jour -->
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">🤝</span>
+                            <p class="font-semibold text-sm sm:text-lg">Travail en équipe</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">📈</span>
+                            <p class="font-semibold text-sm sm:text-lg">Capacité d'analyse</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">🔍</span>
+                            <p class="font-semibold text-sm sm:text-lg">Rigoureuse & Organisée</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">💡</span>
+                            <p class="font-semibold text-sm sm:text-lg">Curieuse & Adaptable</p>
+                        </div>
+                        <div class="skill-tile bg-soft-gray p-4 sm:p-6 rounded-xl text-center shadow-lg hover:shadow-2xl">
+                            <span class="text-2xl sm:text-3xl text-charcoal-dark mb-2 block">💬</span>
+                            <p class="font-semibold text-sm sm:text-lg">Sens relationnel</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 4. Professional experiences & measurable achievements (ATS format) -->
+        <!-- Background: bg-soft-gray (Alternance 3) -->
+        <section id="experience" class="py-16 sm:py-24 bg-soft-gray rounded-2xl transition-colors duration-500 my-16">
+            <!-- CONTENU MIS À JOUR -->
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-charcoal-dark fade-in-up">
+                Expériences & Réalisations
+            </h2>
+            <div class="max-w-5xl mx-auto space-y-8 sm:space-y-12">
+
+                <!-- Expérience 1: Stage RADEEF (MIS À JOUR) -->
+                <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl border-t-4 border-energy-green/70 fade-in-up delay-100">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Stage d'initiation (Génie Électrique)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">Juin 2023</span>
+                    </div>
+                    <p class="text-base sm:text-lg font-semibold text-gray-600 mb-4">RADEEF - Fès, Maroc</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li><strong>Observation active</strong> et travail avec les équipes des départements Basse Tension, Moyenne Tension et Haute Tension.</li>
+                        <li><strong>Participation</strong> à la réalisation de travaux neufs d'installation et à l'entretien des postes électriques (MT & BT).</li>
+                        <li><strong>Accompagnement</strong> sur l'élaboration et la vérification des études électriques (BT, MT, éclairage public).</li>
+                    </ul>
+                </div>
+                
+                <!-- Expérience 2: Festival des Sciences (MIS À JOUR) -->
+                <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl border-t-4 border-energy-green/70 fade-in-up delay-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Animatrice et Organisatrice</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">Mars 2024</span>
+                    </div>
+                    <p class="text-base sm:text-lg font-semibold text-gray-600 mb-4">Festival National des Sciences - Oujda, Maroc</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li><strong>Gestion de groupes</strong> et organisation d'ateliers interactifs et ludiques pour le public.</li>
+                        <li><strong>Présentation</strong> de concepts scientifiques complexes de manière simple et accessible.</li>
+                    </ul>
+                </div>
+
+                <!-- Expérience 3: Membre JLM (MIS À JOUR) -->
+                <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl border-t-4 border-energy-green/70 fade-in-up delay-300">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Membre Actif (Bénévole)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">Engagement associatif</span>
+                    </div>
+                    <p class="text-base sm:text-lg font-semibold text-gray-600 mb-4">Club Social JLM</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li><strong>Participation</strong> active à des initiatives solidaires et à la collecte de fonds.</li>
+                        <li><strong>Aide</strong> à la planification et à l'organisation d'actions solidaires.</li>
+                    </ul>
+                </div>
+                
+                <!-- Expérience 4: Soutien Scolaire (MIS À JOUR) -->
+                <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl border-t-4 border-energy-green/70 fade-in-up delay-400">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Professeure de soutien scolaire</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">Octobre 2022</span>
+                    </div>
+                    <p class="text-base sm:text-lg font-semibold text-gray-600 mb-4">Indépendant</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li><strong>Aide</strong> à la compréhension des notions mathématiques de base pour des collégiens.</li>
+                        <li><strong>Accompagnement</strong> dans la préparation des évaluations.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 5. Project gallery / visual proof -->
+        <!-- CETTE SECTION EST DÉSORMAIS VISIBLE ET REMPLIE -->
+        <section id="projects" class="py-16 sm:py-24 bg-white rounded-2xl transition-colors duration-500 my-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-charcoal-dark fade-in-up">
+                Projets Personnels & Scolaires
+            </h2>
+            <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                
+                <!-- Projet 1 -->
+                <div class="bg-soft-gray rounded-xl shadow-lg overflow-hidden fade-in-up delay-100 border border-gray-200 p-5">
+                    <h3 class="text-xl font-semibold text-energy-green mb-2">MANAJEL SMART GRID</h3>
+                    <p class="text-gray-600 text-sm">
+                        Conception d'un réseau électrique intelligent (Smart Grid) pour optimiser la distribution et la consommation d'énergie.
+                    </p>
+                </div>
+
+                <!-- Projet 2 -->
+                <div class="bg-soft-gray rounded-xl shadow-lg overflow-hidden fade-in-up delay-200 border border-gray-200 p-5">
+                    <h3 class="text-xl font-semibold text-energy-green mb-2">Eclairage public intelligent</h3>
+                    <p class="text-gray-600 text-sm">
+                        Développement d'un système d'éclairage public adaptatif pour réduire la consommation d'énergie.
+                    </p>
+                </div>
+
+                <!-- Projet 3 -->
+                <div class="bg-soft-gray rounded-xl shadow-lg overflow-hidden fade-in-up delay-300 border border-gray-200 p-5">
+                    <h3 class="text-xl font-semibold text-energy-green mb-2">Karting électrique</h3>
+                    <p class="text-gray-600 text-sm">
+                        Projet de conception et réalisation d'un karting à motorisation électrique.
+                    </p>
+                </div>
+                
+                <!-- Projet 4 -->
+                <div class="bg-soft-gray rounded-xl shadow-lg overflow-hidden fade-in-up delay-400 border border-gray-200 p-5">
+                    <h3 class="text-xl font-semibold text-energy-green mb-2">Robot suiveur de ligne</h3>
+                    <p class="text-gray-600 text-sm">
+                        Programmation d'un robot mobile (base Arduino) capable de suivre une ligne tracée au sol.
+                    </p>
+                </div>
+
+                <!-- Projet 5 -->
+                <div class="bg-soft-gray rounded-xl shadow-lg overflow-hidden fade-in-up delay-500 border border-gray-200 p-5">
+                    <h3 class="text-xl font-semibold text-energy-green mb-2">SafeRing : bague intelligente</h3>
+                    <p class="text-gray-600 text-sm">
+                        Prototypage d'un dispositif portable (bague) d'assistance et de sécurité personnelle.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 6. Education & Certifications -->
+        <!-- Background: bg-white (Alternance 4) -->
+        <section id="education" class="py-16 sm:py-24 bg-white rounded-2xl transition-colors duration-500 my-16">
+            <!-- CONTENU MIS À JOUR -->
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-charcoal-dark fade-in-up">
+                Formation & Parcours Académique
+            </h2>
+            <div class="max-w-4xl mx-auto space-y-8 sm:space-y-12">
+                
+                <!-- Formation 1: CNAM (MIS À JOUR) -->
+                <div class="bg-soft-gray p-6 sm:p-8 rounded-xl shadow-lg border-l-4 border-energy-green fade-in-up delay-100">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Cycle Ingénieur (CNAM)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">2025 – 2028 (prévu)</span>
+                    </div>
+                    <p class="text-lg text-gray-700 font-medium">Spécialisation : Génie Électrique</p>
+                    <p class="text-base text-gray-600 italic">Paris, France</p>
+                </div>
+
+                <!-- Formation 2: CPGE 2 (MIS À JOUR) -->
+                <div class="bg-soft-gray p-6 sm:p-8 rounded-xl shadow-lg border-l-4 border-energy-green fade-in-up delay-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Classes Préparatoires (CPGE TSI)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">2024–2025</span>
+                    </div>
+                    <p class="text-lg text-gray-700 font-medium">Filière Technologie et Sciences Industrielles</p>
+                    <p class="text-base text-gray-600 italic">Lycée Le Corbusier - Aubervilliers, France</p>
+                </div>
+
+                <!-- Formation 3: CPGE 1 (MIS À JOUR) -->
+                <div class="bg-soft-gray p-6 sm:p-8 rounded-xl shadow-lg border-l-4 border-energy-green fade-in-up delay-300">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Classes Préparatoires (CPGE TSI)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">2022–2024</span>
+                    </div>
+                    <p class="text-lg text-gray-700 font-medium">Filière Technologie et Sciences Industrielles</p>
+                    <p class="text-base text-gray-600 italic">Lycée Omar Ibn Abdelaziz - Oujda, Maroc</p>
+                </div>
+
+                <!-- Formation 4: BAC (MIS À JOUR) -->
+                <div class="bg-soft-gray p-6 sm:p-8 rounded-xl shadow-lg border-l-4 border-energy-green fade-in-up delay-400">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 class="text-xl sm:text-2xl font-bold text-charcoal-dark">Baccalauréat (Mention Bien)</h3>
+                        <span class="text-sm font-medium text-gray-500 mt-1 sm:mt-0">2021-2022</span>
+                    </div>
+                    <p class="text-lg text-gray-700 font-medium">Sciences et Technologies Électriques (STE)</p>
+                    <p class="text-base text-gray-600 italic">Lycée Technique - Fès, Maroc</p>
+                </div>
+            </div>
+
+            <!-- Langues & Intérêts (MIS À JOUR) -->
+            <div class="max-w-4xl mx-auto mt-10 pt-6 sm:mt-12 sm:pt-8 border-t border-gray-300 fade-in-up delay-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-2xl font-bold text-center text-charcoal-dark mb-4">Langues</h3>
+                        <p class="text-center text-lg sm:text-xl text-gray-700">
+                            Français (Courant)<br>
+                            Anglais (Courant)<br>
+                            Arabe (Langue maternelle)
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-center text-charcoal-dark mb-4">Centres d'intérêt</h3>
+                        <p class="text-center text-lg sm:text-xl text-gray-700">
+                            Bénévolat, Pâtisserie, Cuisine, Voyages, Sport
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- --- -->
+        <!-- 7. Contact + Download CV CTA -->
+        <section id="contact" class="py-16 sm:py-24">
+            <!-- CONTENU MIS À JOUR -->
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16 text-charcoal-dark fade-in-up">
+                Contact & Prochaines Étapes
+            </h2>
+            <div class="max-w-xl mx-auto space-y-12">
+                
+                <!-- Bloc d'informations de contact (MIS À JOUR) -->
+                <div class="bg-charcoal-dark text-white p-8 sm:p-12 rounded-2xl shadow-2xl space-y-6 fade-in-up delay-100">
+
+                    <div class="flex items-start space-x-4">
+                        <!-- Icône Mail -->
+                        <svg class="w-6 h-6 text-energy-green flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7"></path></svg>
+                        <div>
+                            <p class="text-sm text-gray-400">Email</p>
+                            <a href="mailto:hibaaafil2@gmail.com" class="text-base sm:text-lg font-medium hover:text-energy-green transition duration-200">hibaaafil2@gmail.com</a>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-4">
+                        <!-- Icône Téléphone -->
+                        <svg class="w-6 h-6 text-energy-green flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                        <div>
+                            <p class="text-sm text-gray-400">Téléphone</p>
+                            <span class="text-base sm:text-lg font-medium">+33 7 51 21 14 34</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <!-- Icône Localisation -->
+                        <svg class="w-6 h-6 text-energy-green flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <div>
+                            <p class="text-sm text-gray-400">Localisation (Mobile en IDF)</p>
+                            <span class="text-base sm:text-lg font-medium">93130 Noisy le sec (IDF)</span>
+                        </div>
+                    </div>
+                    
+                    <!-- NOUVEAU: Permis B -->
+                    <div class="flex items-start space-x-4">
+                        <!-- Icône Voiture -->
+                        <svg class="w-6 h-6 text-energy-green flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l-7-7 7-7m5 14l7-7-7-7"></path><path d="M19.4 5.6a1.5 1.5 0 0 0-2.1 0L12 10.9 6.7 5.6a1.5 1.5 0 0 0-2.1 2.1L10 13l-5.4 5.3a1.5 1.5 0 0 0 2.1 2.1L12 15.1l5.3 5.3a1.5 1.5 0 0 0 2.1-2.1L14 13l5.3-5.3a1.5 1.5 0 0 0 0-2.1z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5M15 17l5-5-5-5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14"></path><path d="M0 0h24v24H0z" stroke="none" fill="none"></path><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path><path d="M5 17h-2v-6l2 -5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5"></path></svg>
+                        <div>
+                            <p class="text-sm text-gray-400">Mobilité</p>
+                            <span class="text-base sm:text-lg font-medium">Permis B</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-gray-700">
+                        <!-- Bouton CV Téléchargement SUPPRIMÉ -->
+                        <div class="pt-4 text-center">
+                            <!-- LIEN MIS À JOUR -->
+                            <a href="https://www.linkedin.com/in/hiba-aafi/" target="_blank" aria-label="Profil LinkedIn de Hiba Aafi" class="inline-flex items-center space-x-2 text-base sm:text-lg font-semibold text-energy-green hover:text-emerald-400 transition duration-200">
+                                <!-- Icône LinkedIn (à jour) -->
+                                <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.551-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.742 7 2.742v6.493z"></path></svg>
+                                <span>Mon Profil LinkedIn</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- NOUVEAU BLOC : Déposer votre Candidature (CV Drop) -->
+                <div class="bg-white p-8 sm:p-12 rounded-2xl shadow-xl space-y-4 fade-in-up delay-200 text-center border border-gray-200">
+                    <!-- CONTENU MIS À JOUR -->
+                    <h3 class="text-2xl font-bold text-charcoal-dark">Vous avez une opportunité ?</h3>
+                    <p class="text-gray-700 text-lg">
+                        Envoyez-moi votre description de poste. Je suis disponible pour un entretien à votre convenance.
+                    </p>
+                    <!-- LIEN MIS À JOUR -->
+                    <a href="mailto:hibaaafil2@gmail.com" class="inline-flex items-center space-x-2 px-6 py-3 text-lg font-medium rounded-full text-white bg-energy-green hover:bg-emerald-700 transition duration-300 shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7"></path></svg>
+                        <span>Envoyer votre offre par Email</span>
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- NOUVEAU: CTA Flottant Mobile (MIS À JOUR) -->
+    <div class="md:hidden fixed bottom-0 left-0 w-full z-40 p-3 bg-white border-t border-soft-gray shadow-lg">
+        <a href="#contact" class="flex items-center justify-center space-x-2 w-full px-4 py-3 text-lg font-bold rounded-xl text-white bg-energy-green hover:bg-emerald-700 transition duration-300">
+            <!-- Icône Mail -->
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7"></path></svg>
+            <span>Alternance : Contacter Hiba</span>
+        </a>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 blurry-overlay flex justify-center items-center z-50 hidden">
-         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 md:p-8 w-11/12 md:w-1/3 shadow-2xl animate-fade-in">
-             <h2 id="confirm-title" class="text-xl font-bold text-white mb-4">تأكيد الإجراء</h2>
-             <p id="confirm-message" class="text-gray-300 mb-6">هل أنت متأكد من رغبتك في المتابعة؟ لا يمكن التراجع عن هذا الإجراء.</p>
-             <div class="flex justify-end gap-4">
-                 <button id="confirm-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">إلغاء</button>
-                 <button id="confirm-action-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">نعم، قم بالحذف</button>
-             </div>
-         </div>
-    </div>
+    <!-- Footer (MIS À JOUR) -->
+    <footer class="bg-charcoal-dark text-white p-8 mt-12">
+        <div class="max-w-7xl mx-auto text-center text-sm text-gray-400">
+            &copy; 2025 Hiba Aafi. Optimisé pour l'emploi.
+        </div>
+    </footer>
 
+    <!-- JavaScript pour l'animation 'fade-in-up' et Intro -->
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        let authReady = false;
-        let unsubscribe = null; // To detach Firestore listener
-        const state = {
-            trades: [],
-            stats: {
-                netPnl: 0, totalTrades: 0, winRate: 0, avgPnl: 0,
-                profitFactor: 0, avgWin: 0, avgLoss: 0,
-                longestWinStreak: 0, longestLossStreak: 0,
-                totalWins: 0, totalLosses: 0,
-                equityCurve: [], setupsPerformance: {}
-            },
-        };
+        document.addEventListener("DOMContentLoaded", function() {
+            // --- Logique d'Animation Fade-In-Up pour les sections ---
+            const elements = document.querySelectorAll('.fade-in-up');
 
-        const elements = {
-            appContainer: document.getElementById('app-container'),
-            authOverlay: document.getElementById('auth-overlay'),
-            authModal: document.getElementById('auth-modal'),
-            loadingContainer: document.getElementById('loading-container'),
-            userIdDisplay: document.getElementById('user-id-display'),
-            kpiContainer: document.getElementById('kpi-cards'),
-            tradeForm: document.getElementById('trade-form'),
-            tradeLogContainer: document.getElementById('trade-log-container'),
-            submitBtn: document.getElementById('submit-btn'),
-            
-            addTradeBtn: document.getElementById('add-trade-btn'),
-            tradeModal: document.getElementById('trade-modal'),
-            closeTradeModalBtn: document.getElementById('close-trade-modal-btn'),
-            settingsBtn: document.getElementById('settings-btn'),
-            settingsModal: document.getElementById('settings-modal'),
-            closeSettingsModalBtn: document.getElementById('close-settings-modal-btn'),
-            exportBtn: document.getElementById('export-btn'),
-            clearDataBtn: document.getElementById('clear-data-btn'),
-            confirmModal: document.getElementById('confirm-modal'),
-            confirmTitle: document.getElementById('confirm-title'),
-            confirmMessage: document.getElementById('confirm-message'),
-            confirmActionBtn: document.getElementById('confirm-action-btn'),
-            confirmCancelBtn: document.getElementById('confirm-cancel-btn'),
-
-            googleSignInBtn: document.getElementById('google-signin-btn'),
-            appleSignInBtn: document.getElementById('apple-signin-btn'),
-            guestSignInBtn: document.getElementById('guest-signin-btn'),
-
-            longestWinStreakDisplay: document.getElementById('longestWinStreak'),
-            longestLossStreakDisplay: document.getElementById('longestLossStreak'),
-            totalWinsDisplay: document.getElementById('totalWins'),
-            totalLossesDisplay: document.getElementById('totalLosses'),
-        };
-
-        const kpiConfig = [
-            { id: 'netPnl', label: 'صافي الأرباح', isCurrency: true },
-            { id: 'winRate', label: 'معدل النجاح', suffix: '%' },
-            { id: 'profitFactor', label: 'عامل الربح' },
-            { id: 'avgPnl', label: 'متوسط الصفقة', isCurrency: true },
-            { id: 'avgWin', label: 'متوسط الربح', isCurrency: true },
-            { id: 'avgLoss', label: 'متوسط الخسارة', isCurrency: true },
-        ];
-
-        let equityChart = null;
-        let setupsChart = null;
-        let confirmCallback = null;
-        
-        const formatCurrency = (value) => `${value >= 0 ? '+' : ''}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        
-        const showConfirmation = (title, message, onConfirm) => {
-            elements.confirmTitle.textContent = title;
-            elements.confirmMessage.textContent = message;
-            elements.confirmModal.classList.remove('hidden');
-            confirmCallback = onConfirm;
-        };
-
-        const showLoading = () => {
-            elements.authModal.classList.add('hidden');
-            elements.loadingContainer.classList.remove('hidden');
-            elements.loadingContainer.classList.add('flex');
-        };
-
-        const showLoginOptions = () => {
-            elements.loadingContainer.classList.add('hidden');
-            elements.loadingContainer.classList.remove('flex');
-            elements.authModal.classList.remove('hidden');
-            elements.authModal.classList.add('flex');
-        };
-
-        const calculateStats = (trades) => {
-            const completed = trades.filter(t => t.date && t.date.seconds);
-            if (completed.length === 0) {
-                return {
-                    netPnl: 0, totalTrades: 0, winRate: 0, avgPnl: 0,
-                    profitFactor: 0, avgWin: 0, avgLoss: 0,
-                    longestWinStreak: 0, longestLossStreak: 0,
-                    totalWins: 0, totalLosses: 0,
-                    equityCurve: [], setupsPerformance: {}
-                };
-            }
-            
-            const wins = completed.filter(t => t.status === 'Win');
-            const losses = completed.filter(t => t.status === 'Loss');
-
-            const grossProfit = wins.reduce((sum, t) => sum + t.profit, 0);
-            const grossLoss = Math.abs(losses.reduce((sum, t) => sum + t.profit, 0));
-            const netPnl = grossProfit - grossLoss;
-
-            let currentWinStreak = 0, longestWinStreak = 0, currentLossStreak = 0, longestLossStreak = 0;
-            completed.sort((a, b) => a.date.seconds - b.date.seconds).forEach(trade => {
-                if (trade.status === 'Win') {
-                    currentWinStreak++;
-                    currentLossStreak = 0;
-                    if (currentWinStreak > longestWinStreak) longestWinStreak = currentWinStreak;
-                } else {
-                    currentLossStreak++;
-                    currentWinStreak = 0;
-                    if (currentLossStreak > longestLossStreak) longestLossStreak = currentLossStreak;
-                }
-            });
-
-            let cumulativePnl = 0;
-            const equityCurve = completed.map(t => {
-                cumulativePnl += t.profit;
-                return { date: t.date, pnl: cumulativePnl };
-            });
-
-            const setupsPerformance = completed.reduce((acc, trade) => {
-                const setup = trade.setup || 'غير محدد';
-                if (!acc[setup]) acc[setup] = { pnl: 0, count: 0 };
-                acc[setup].pnl += trade.profit;
-                acc[setup].count++;
-                return acc;
-            }, {});
-
-            return {
-                netPnl: netPnl, totalTrades: completed.length,
-                winRate: completed.length > 0 ? (wins.length / completed.length) * 100 : 0,
-                avgPnl: completed.length > 0 ? netPnl / completed.length : 0,
-                profitFactor: grossLoss > 0 ? grossProfit / grossLoss : 0,
-                avgWin: wins.length > 0 ? grossProfit / wins.length : 0,
-                avgLoss: losses.length > 0 ? grossLoss / losses.length : 0,
-                longestWinStreak, longestLossStreak,
-                totalWins: wins.length, totalLosses: losses.length,
-                equityCurve, setupsPerformance
-            };
-        };
-
-        const renderAll = () => {
-            state.stats = calculateStats(state.trades);
-            renderKPIs();
-            renderEquityCurve();
-            renderSetupsChart();
-            renderTradeLog();
-            renderExtraStats();
-        };
-
-        const renderKPIs = () => {
-            elements.kpiContainer.innerHTML = kpiConfig.map(kpi => {
-                let value = state.stats[kpi.id];
-                let formattedValue;
-                let colorClass = 'text-gray-200';
-
-                if (kpi.isCurrency) {
-                    formattedValue = formatCurrency(value);
-                    colorClass = value >= 0 ? 'text-green-400' : 'text-red-400';
-                } else {
-                    formattedValue = `${value.toFixed(1)}${kpi.suffix || ''}`;
-                }
-
-                if (kpi.id === 'profitFactor') {
-                     formattedValue = value.toFixed(2);
-                     colorClass = value >= 1 ? 'text-green-400' : 'text-red-400';
-                }
-                if (kpi.id === 'avgWin') colorClass = 'text-green-400';
-                if (kpi.id === 'avgLoss') colorClass = 'text-red-400';
-
-                return `
-                    <div class="card p-4 rounded-xl text-center flex flex-col justify-center items-center">
-                        <p class="text-sm text-gray-400 font-bold whitespace-nowrap">${kpi.label}</p>
-                        <p class="text-xl lg:text-2xl font-bold mt-1 ${colorClass} whitespace-nowrap">${formattedValue}</p>
-                    </div>`;
-            }).join('');
-        };
-        
-        const renderExtraStats = () => {
-            elements.longestWinStreakDisplay.textContent = state.stats.longestWinStreak;
-            elements.longestLossStreakDisplay.textContent = state.stats.longestLossStreak;
-            elements.totalWinsDisplay.textContent = state.stats.totalWins;
-            elements.totalLossesDisplay.textContent = state.stats.totalLosses;
-        };
-
-        const renderEquityCurve = () => {
-            const ctx = document.getElementById('equityChart').getContext('2d');
-            if (equityChart) equityChart.destroy();
-            
-            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
-            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
-            const labels = ["البداية", ...state.stats.equityCurve.map((_, i) => `صفقة ${i+1}`)];
-            const dataPoints = [0, ...state.stats.equityCurve.map(d => d.pnl)];
-
-            equityChart = new Chart(ctx, {
-                type: 'line', data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'صافي الربح التراكمي', data: dataPoints, borderColor: '#3b82f6',
-                        backgroundColor: gradient, fill: true, tension: 0.4,
-                        pointRadius: dataPoints.length > 2 ? 2 : 4, pointBackgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: false, grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
-                        x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 10 } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        };
-
-        const renderSetupsChart = () => {
-             const ctx = document.getElementById('setupsChart').getContext('2d');
-             if (setupsChart) setupsChart.destroy();
-
-             const labels = Object.keys(state.stats.setupsPerformance);
-             const data = labels.map(label => state.stats.setupsPerformance[label].pnl);
-             
-             const backgroundColors = data.map(pnl => pnl >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
-             const borderColors = data.map(pnl => pnl >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)');
-
-             setupsChart = new Chart(ctx, {
-                type: 'doughnut', data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'صافي الربح', data: data, backgroundColor: backgroundColors,
-                        borderColor: borderColors, borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'top', labels: { color: '#d1d5db' } },
-                        tooltip: { callbacks: { label: (c) => `${c.label}: ${formatCurrency(c.raw)}` } }
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
                     }
-                }
-             });
-        };
+                });
+            }, {
+                threshold: 0.15
+            });
 
-        const renderTradeLog = () => {
-            elements.tradeLogContainer.innerHTML = '';
-            if (state.trades.length === 0) {
-                elements.tradeLogContainer.innerHTML = '<p class="text-gray-500 text-center mt-8">لا توجد صفقات مسجلة حتى الآن.</p>';
-                return;
+            elements.forEach(element => {
+                observer.observe(element);
+            });
+
+
+            // --- Logique Menu Mobile (AJOUTÉE) ---
+            const menuButton = document.getElementById('menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const iconOpen = document.getElementById('menu-icon-open');
+            const iconClose = document.getElementById('menu-icon-close');
+            const mobileLinks = mobileMenu.querySelectorAll('a');
+
+            function toggleMenu() {
+                const isHidden = mobileMenu.classList.contains('hidden');
+                if (isHidden) {
+                    mobileMenu.classList.remove('hidden');
+                    iconOpen.classList.add('hidden');
+                    iconClose.classList.remove('hidden');
+                    // Empêche le scroll sur le corps du document lorsque le menu est ouvert
+                    document.body.style.overflow = 'hidden'; 
+                } else {
+                    mobileMenu.classList.add('hidden');
+                    iconOpen.classList.remove('hidden');
+                    iconClose.classList.add('hidden');
+                    // Réactive le scroll
+                    document.body.style.overflow = '';
+                }
             }
 
-            state.trades.filter(t => t.date && t.date.seconds).sort((a, b) => b.date.seconds - a.date.seconds)
-                .forEach(trade => {
-                    const isWin = trade.status === 'Win';
-                    const div = document.createElement('div');
-                    div.className = `trade-item card p-3 rounded-xl border-l-4 ${isWin ? 'border-green-500' : 'border-red-500'} cursor-pointer`;
-                    div.dataset.tradeId = trade.id;
-                    
-                    const dateObj = trade.date.toDate();
-                    const formattedDate = dateObj.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-                    const imageHtml = trade.imageBase64 ? `<img src="${trade.imageBase64}" alt="Trade chart" class="mt-2 rounded-lg w-full h-auto">` : '<p class="text-xs text-gray-500 mt-2">لا توجد صورة.</p>';
-                    
-                    div.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="font-extrabold text-lg text-white">${trade.asset}</span>
-                                <span class="text-xs text-gray-400 ml-2">${trade.setup || ''}</span>
-                            </div>
-                             <div class="flex items-center gap-2">
-                                <span class="font-bold ${isWin ? 'text-green-400' : 'text-red-400'}">${formatCurrency(trade.profit)}</span>
-                                <button class="delete-trade-btn text-gray-500 hover:text-red-400" data-id="${trade.id}" title="حذف الصفقة">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                                </button>
-                             </div>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">${formattedDate} - ${trade.direction === 'Long' ? 'شراء' : 'بيع'}</div>
-                        <div class="trade-details mt-2 pt-2 border-t border-gray-700">
-                            <p class="text-sm text-gray-300">${trade.notes || 'لا توجد ملاحظات مسجلة.'}</p>
-                            ${imageHtml}
-                        </div>`;
-                    elements.tradeLogContainer.appendChild(div);
-                });
-        };
+            menuButton.addEventListener('click', toggleMenu);
 
-        const fileToBase64 = (file) => new Promise((resolve, reject) => {
-            if (!file) return resolve(null);
-            if (file.size > 1024 * 500) return reject("حجم الصورة يتجاوز 500 كيلوبايت.");
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = (error) => reject(error);
+            // Ferme le menu quand un lien est cliqué
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        setTimeout(toggleMenu, 300); // Laisse le temps pour le scroll doux
+                    }
+                });
+            });
+            // --- FIN Logique Menu Mobile ---
+
+
+            // --- Logique d'Animation d'Introduction (Machine à Écrire) ---
+            const introOverlay = document.getElementById('intro-overlay');
+            
+            // 1. Vérifie si l'intro a déjà été jouée dans cette session
+            if (sessionStorage.getItem('introPlayed') === 'true') {
+                introOverlay.style.display = 'none';
+                return; // Stoppe l'exécution du reste du script d'intro
+            }
+            
+            // 2. Si non jouée, procède à l'animation
+            const introTextElement = document.getElementById('intro-text');
+            // TEXTE MIS À JOUR (Prête)
+            const textToType = "Prête à découvrir mon parcours ? Allons-y.".split(' ');
+            const delayBetweenWords = 150; // Délai entre chaque mot (ms)
+            const finalDelay = 2500; // 2.5 secondes après affichage complet (ms)
+            let wordIndex = 0;
+
+            function typeWord() {
+                if (wordIndex < textToType.length) {
+                    // Ajoute un mot avec un espace, puis un petit délai
+                    introTextElement.textContent += textToType[wordIndex] + (wordIndex < textToType.length - 1 ? ' ' : '');
+                    wordIndex++;
+                    setTimeout(typeWord, delayBetweenWords);
+                } else {
+                    // Animation terminée : retire le curseur et fait disparaître l'overlay
+                    introTextElement.classList.add('finished');
+                    // Marque l'intro comme jouée
+                    sessionStorage.setItem('introPlayed', 'true'); 
+                    
+                    setTimeout(function() {
+                        // Déclenche la transition de l'overlay (opacity 1 -> 0)
+                        introOverlay.style.opacity = '0';
+                        // Supprime l'overlay du DOM après la transition
+                        setTimeout(() => {
+                            introOverlay.style.display = 'none';
+                        }, 1000); // 1000ms = durée de transition CSS
+                    }, finalDelay);
+                }
+            }
+            typeWord();
         });
-
-        const loadTrades = () => {
-            if (unsubscribe) unsubscribe(); 
-            if (!window.db || !window.userId) return;
-            
-            const journalCollectionPath = `artifacts/${window.appId}/users/${window.userId}/trading_journal`;
-            const q = window.query(window.collection(window.db, journalCollectionPath));
-            
-            unsubscribe = window.onSnapshot(q, (snapshot) => {
-                state.trades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-                elements.authOverlay.classList.add('hidden');
-                elements.appContainer.classList.remove('opacity-0');
-                
-                const user = window.auth.currentUser;
-                if (user) {
-                    elements.userIdDisplay.textContent = user.email || `مستخدم: ${window.userId.substring(0, 6)}`;
-                }
-            }, (error) => {
-                console.error("Error fetching trades:", error);
-                elements.authOverlay.classList.add('hidden');
-                elements.appContainer.classList.remove('opacity-0');
-            });
-        };
-
-        const addTrade = async (tradeData) => {
-            if (!window.db) return;
-            elements.submitBtn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
-            elements.submitBtn.disabled = true;
-            const journalCollectionPath = `artifacts/${window.appId}/users/${window.userId}/trading_journal`;
-
-            try {
-                await window.addDoc(window.collection(window.db, journalCollectionPath), {
-                    ...tradeData, userId: window.userId,
-                });
-                elements.tradeForm.reset();
-                elements.tradeModal.classList.add('hidden');
-            } catch (e) {
-                console.error("Error adding document: ", e);
-            } finally {
-                elements.submitBtn.innerHTML = 'حفظ';
-                elements.submitBtn.disabled = false;
-            }
-        };
-
-        const deleteTrade = async (tradeId) => {
-            if (!window.db) return;
-             const journalCollectionPath = `artifacts/${window.appId}/users/${window.userId}/trading_journal`;
-            try {
-                await window.deleteDoc(window.doc(window.db, journalCollectionPath, tradeId));
-            } catch(e) { console.error("Error deleting trade: ", e); }
-        };
-
-        const handleSignIn = async (provider) => {
-            if (!window.auth) return;
-            showLoading();
-            try {
-                await window.signInWithPopup(window.auth, provider);
-            } catch (error) {
-                console.error("Sign-in failed:", error);
-                showLoginOptions();
-            }
-        };
-        
-        const setupEventListeners = () => {
-            elements.googleSignInBtn.addEventListener('click', () => handleSignIn(new window.GoogleAuthProvider()));
-            elements.appleSignInBtn.addEventListener('click', () => handleSignIn(new window.OAuthProvider('apple.com')));
-            elements.guestSignInBtn.addEventListener('click', () => {
-                showLoading();
-                window.signInAnonymously(window.auth).catch(error => {
-                    console.error("Guest sign-in failed: ", error);
-                    showLoginOptions();
-                });
-            });
-
-            elements.addTradeBtn.addEventListener('click', () => elements.tradeModal.classList.remove('hidden'));
-            elements.closeTradeModalBtn.addEventListener('click', () => elements.tradeModal.classList.add('hidden'));
-            elements.settingsBtn.addEventListener('click', () => elements.settingsModal.classList.remove('hidden'));
-            elements.closeSettingsModalBtn.addEventListener('click', () => elements.settingsModal.classList.add('hidden'));
-            
-            elements.confirmCancelBtn.addEventListener('click', () => {
-                elements.confirmModal.classList.add('hidden');
-                confirmCallback = null;
-            });
-            elements.confirmActionBtn.addEventListener('click', () => {
-                if (confirmCallback) confirmCallback();
-                elements.confirmModal.classList.add('hidden');
-                confirmCallback = null;
-            });
-            
-            elements.tradeLogContainer.addEventListener('click', (e) => {
-                const tradeItem = e.target.closest('.trade-item');
-                const deleteBtn = e.target.closest('.delete-trade-btn');
-
-                if(deleteBtn){
-                    e.stopPropagation();
-                    const tradeId = deleteBtn.dataset.id;
-                    showConfirmation('حذف الصفقة', 'هل أنت متأكد من رغبتك في حذف هذه الصفقة؟', () => deleteTrade(tradeId));
-                } else if (tradeItem) {
-                    tradeItem.classList.toggle('expanded');
-                }
-            });
-
-            elements.tradeForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                let imageBase64 = null;
-                const imageFile = document.getElementById('tradeImage').files[0];
-                if (imageFile) {
-                    try { imageBase64 = await fileToBase64(imageFile); } catch (error) { alert(error); return; }
-                }
-
-                const rawProfit = parseFloat(document.getElementById('profit').value);
-                const status = document.getElementById('status').value;
-                
-                const tradeData = {
-                    asset: document.getElementById('asset').value.toUpperCase().trim(),
-                    setup: document.getElementById('setup').value.trim(),
-                    date: window.serverTimestamp(), status: status,
-                    direction: document.getElementById('direction').value,
-                    profit: rawProfit * (status === 'Loss' ? -1 : 1),
-                    imageBase64: imageBase64,
-                    notes: document.getElementById('notes').value.trim(),
-                };
-                await addTrade(tradeData);
-            });
-            
-             elements.clearDataBtn.addEventListener('click', () => {
-                showConfirmation( 'مسح جميع البيانات', 'هل أنت متأكد تماماً؟ سيتم حذف جميع الصفقات بشكل نهائي.',
-                    () => { state.trades.forEach(trade => deleteTrade(trade.id)); }
-                );
-            });
-
-            elements.exportBtn.addEventListener('click', () => {
-                 if (state.trades.length === 0) return;
-                const headers = ['Asset', 'Date', 'Setup', 'Direction', 'Status', 'Profit', 'Notes'];
-                const csvRows = [headers.join(',')];
-                state.trades.filter(t=>t.date).forEach(trade => {
-                    const row = [
-                        trade.asset, trade.date.toDate().toISOString(), trade.setup,
-                        trade.direction, trade.status, trade.profit.toFixed(2),
-                        `"${(trade.notes || '').replace(/"/g, '""')}"`
-                    ];
-                    csvRows.push(row.join(','));
-                });
-                
-                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = "trading_journal_export.csv";
-                link.click();
-            });
-        };
-
-        const init = () => {
-            if (authReady) return;
-            authReady = true;
-            loadTrades(); 
-            renderAll();
-            setupEventListeners();
-        };
-        
-        // This is the only event listener that should be outside init.
-        setupEventListeners();
-
-        document.addEventListener('authReady', init, { once: true });
-        document.addEventListener('authNeeded', showLoginOptions, { once: true });
-    });
     </script>
 </body>
 </html>
